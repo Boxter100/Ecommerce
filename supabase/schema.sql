@@ -197,6 +197,24 @@ create trigger products_touch_updated_at
   before update on public.products
   for each row execute procedure public.touch_updated_at();
 
+-- ---------- Storage de imágenes de producto ----------
+-- Bucket público "products" (solo .webp, máx. 10 MB)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('products', 'products', true, 10485760, array['image/webp'])
+on conflict (id) do update
+  set public = true,
+      file_size_limit = 10485760,
+      allowed_mime_types = array['image/webp'];
+
+-- Lectura pública y escritura solo para admins
+create policy "products_storage_read_public" on storage.objects
+  for select using (bucket_id = 'products');
+
+create policy "products_storage_admin_all" on storage.objects
+  for all
+  using (bucket_id = 'products' and public.is_admin())
+  with check (bucket_id = 'products' and public.is_admin());
+
 -- ============================================================
 -- PRIMER ADMINISTRADOR (reemplaza por tu email):
 --   update public.profiles set role = 'super_admin'

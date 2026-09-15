@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createBrowserSupabase } from '../../lib/supabase/browser';
+import ImageUploader from './ImageUploader';
 import type { Category, Product } from '../../lib/types';
 import type { SizeRange } from '../../lib/sizes';
 import {
@@ -55,7 +56,7 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
   const [stockMap, setStockMap] = useState<Record<string, number>>(() =>
     defaultStockMap(initial?.size_range ?? 'both', initial?.stockBySize),
   );
-  const [images, setImages] = useState((initial?.images ?? []).join('\n'));
+  const [images, setImages] = useState<string[]>(initial?.images ?? []);
   const [featured, setFeatured] = useState(initial?.is_featured ?? false);
   const [active, setActive] = useState(initial?.active ?? true);
   const [busy, setBusy] = useState(false);
@@ -134,10 +135,7 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
       size_range: range,
       sizes: labels,
       stock: total,
-      images: images
-        .split('\n')
-        .map((s) => s.trim())
-        .filter(Boolean),
+      images,
       is_featured: featured,
       active,
     };
@@ -273,10 +271,7 @@ export default function ProductForm({ categories, initial }: ProductFormProps) {
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className={inputClass} placeholder="Zapatilla de running con placa de fibra y espuma de retorno de energía…" />
       </label>
 
-      <label className="flex flex-col gap-1.5">
-        <span className={labelClass}>Imágenes (una URL por línea)</span>
-        <textarea value={images} onChange={(e) => setImages(e.target.value)} rows={3} className={inputClass} placeholder="/images/products/runner-pro-1.svg" />
-      </label>
+      <ImageUploader images={images} onChange={setImages} disabled={busy} />
 
       <div className="flex flex-wrap items-center gap-6">
         <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold">

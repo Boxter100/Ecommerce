@@ -32,6 +32,7 @@ supabase/
 ├── schema.sql            # Tablas, RLS, triggers (ejecutar en Supabase)
 ├── migration_super_admin.sql      # Migración de roles (BD ya existente)
 ├── migration_inventario_por_talla.sql  # Migración a stock por talla (BD ya existente)
+├── migration_storage_productos.sql  # Bucket "products" + RLS de Storage (BD ya existente)
 └── seed.sql              # Productos, categorías e inventario por talla
 scripts/gen-product-images.mjs  # Genera los pósteres SVG de productos
 ```
@@ -48,6 +49,8 @@ scripts/gen-product-images.mjs  # Genera los pósteres SVG de productos
 
    - Crea un proyecto nuevo en [supabase.com](https://supabase.com).
    - En el **SQL Editor**, ejecuta `supabase/schema.sql` y después `supabase/seed.sql`.
+   - Si la base de datos ya existía, ejecuta las migraciones `supabase/migration_*.sql`
+     (roles, inventario por talla y **Storage de imágenes**).
 
 3. **Crear el primer administrador**
 
