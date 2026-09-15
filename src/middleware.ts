@@ -2,6 +2,7 @@ import { defineMiddleware } from 'astro:middleware';
 import { createServerClient, parseCookieHeader } from '@supabase/ssr';
 import type { AstroCookieSetOptions } from 'astro';
 import { envUrl, envAnonKey, isSupabaseConfigured } from './lib/env';
+import { MAX_SESSION_LIFETIME_MS } from './lib/session';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   let supabase = null;
@@ -37,6 +38,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect(
       `/admin/login?next=${encodeURIComponent(pathname)}`,
     );
+  }
+
+  if (isAdminArea && !isLoginPage && user && supabase) {
+    const lastSignIn = user.last_sign_in_at
+      ? new Date(user.last_sign_in_at).getTime()
+      : null;
+    if (
+      lastSignIn !== null &&
+      Date.now() - lastSignIn > MAX_SESSION_LIFETIME_MS
+    ) {
+      await supabase.auth.signOut();
+      return context.redirect('/admin/login?reason=max');
+    }
   }
 
   return next();

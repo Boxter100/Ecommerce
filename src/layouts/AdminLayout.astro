@@ -1,5 +1,6 @@
 ---
 import type { User } from '@supabase/supabase-js';
+import SessionGuard from '../components/react/SessionGuard';
 import '../styles/global.css';
 
 interface Props {
@@ -67,5 +68,7 @@ const { title = 'Panel de administración', user } = Astro.props;
     <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <slot />
     </main>
+
+    <SessionGuard client:load />
   </body>
 </html>
