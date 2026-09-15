@@ -1,0 +1,72 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import CartDrawer from '../components/react/CartDrawer';
+import Toast from '../components/react/Toast';
+import { isSupabaseConfigured } from '../lib/env';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'VUELTA · Tienda de calzado',
+  description = 'Calzado con carácter: running, lifestyle, baloncesto y trail. Paga con Stripe, gestiona con Supabase.',
+} = Astro.props;
+
+const demoMode = !isSupabaseConfigured();
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <script is:inline>
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem('vuelta.theme');
+        } catch (e) {
+          /* noop */
+        }
+        var dark = stored
+          ? stored === 'dark'
+          : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', dark);
+      })();
+    </script>
+  </head>
+  <body class="noise bg-paper text-ink dark:bg-ink dark:text-paper">
+    {demoMode && (
+      <div class="fixed bottom-4 left-4 z-40 max-w-xs rounded-xl border border-ember/40 bg-paper/90 p-3 text-xs shadow-lg backdrop-blur dark:bg-ink-2/90">
+        <p class="font-bold uppercase tracking-wider text-ember">Modo demo</p>
+        <p class="mt-1 leading-relaxed text-ink/70 dark:text-paper/70">
+          Tienda funcionando con el catálogo de ejemplo. Añade tus credenciales de
+          Supabase y Stripe en <code class="rounded bg-paper-2 px-1 py-0.5 font-mono dark:bg-ink-3">.env</code> para activar la tienda real.
+        </p>
+        <a href="/admin/login" class="mt-2 inline-block font-bold text-ember underline underline-offset-2">
+          Ver guía de conexión →
+        </a>
+      </div>
+    )}
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+    <CartDrawer client:load />
+    <Toast client:load />
+  </body>
+</html>

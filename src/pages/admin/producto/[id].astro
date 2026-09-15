@@ -1,0 +1,32 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ProductForm from '../../../components/react/ProductForm';
+import { isAdminUser } from '../../../lib/supabase/is-admin';
+import { getCategories, getProductById } from '../../../lib/products';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+
+if (!supabase || !user || !(await isAdminUser(supabase, user))) {
+  return Astro.redirect('/admin/login?error=unauthorized');
+}
+
+const id = Astro.params.id ?? '';
+const [product, categories] = await Promise.all([
+  getProductById(supabase, id),
+  getCategories(supabase),
+]);
+
+if (!product) {
+  return Astro.redirect('/admin/productos');
+}
+---
+
+<AdminLayout title={`Editar ${product.name}`} user={user}>
+  <header>
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-ember">Catálogo</p>
+    <h1 class="font-display mt-1 text-3xl uppercase sm:text-4xl">Editar producto</h1>
+    <p class="mt-1 text-sm text-ink/60 dark:text-paper/60">{product.name}</p>
+  </header>
+  <ProductForm client:load categories={categories} initial={product} />
+</AdminLayout>

@@ -1,0 +1,48 @@
+---
+import ThemeToggle from './react/ThemeToggle';
+import CartButton from './react/CartButton';
+
+const links = [
+  { href: '/', label: 'Inicio' },
+  { href: '/productos', label: 'Productos' },
+  { href: '/productos?categoria=running', label: 'Running' },
+  { href: '/productos?categoria=estilo-de-vida', label: 'Lifestyle' },
+  { href: '/admin', label: 'Admin' },
+];
+---
+
+<header class="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur dark:border-line-dark dark:bg-ink/85">
+  <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    <a href="/" class="font-display text-3xl tracking-wide" aria-label="Vuelta, inicio">
+      VUELTA<span class="text-ember">.</span>
+    </a>
+
+    <nav class="hidden items-center gap-7 text-xs font-bold uppercase tracking-[0.14em] md:flex">
+      {
+        links.map((link) => (
+          <a
+            href={link.href}
+            class="transition-colors hover:text-ember"
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="flex items-center gap-2">
+      <ThemeToggle client:load />
+      <CartButton client:load />
+    </div>
+  </div>
+
+  <nav class="scrollbar-thin flex gap-5 overflow-x-auto px-4 pb-2 pt-0 text-[11px] font-bold uppercase tracking-[0.14em] text-ink/60 dark:text-paper/60 md:hidden">
+    {
+      links.map((link) => (
+        <a href={link.href} class="whitespace-nowrap transition-colors hover:text-ember">
+          {link.label}
+        </a>
+      ))
+    }
+  </nav>
+</header>

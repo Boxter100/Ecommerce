@@ -1,0 +1,103 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import AdminRowActions from '../../components/react/AdminRowActions';
+import { isAdminUser } from '../../lib/supabase/is-admin';
+import { getCategories, getProducts } from '../../lib/products';
+import { formatCents } from '../../lib/format';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+
+if (!supabase || !user || !(await isAdminUser(supabase, user))) {
+  return Astro.redirect('/admin/login?error=unauthorized');
+}
+
+const [products, categories] = await Promise.all([
+  getProducts(supabase, { includeInactive: true, limit: 200 }),
+  getCategories(supabase),
+]);
+---
+
+<AdminLayout title="Productos" user={user}>
+  <header class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-[0.2em] text-ember">Catálogo</p>
+      <h1 class="font-display mt-1 text-3xl uppercase sm:text-4xl">Productos</h1>
+      <p class="mt-1 text-sm text-ink/60 dark:text-paper/60">
+        {products.length} productos · {categories.length} categorías
+      </p>
+    </div>
+    <a
+      href="/admin/producto/nuevo"
+      class="bg-ember px-4 py-3 text-sm font-bold uppercase tracking-widest text-white shadow-hard-sm transition-all hover:-translate-y-0.5"
+    >
+      + Nuevo producto
+    </a>
+  </header>
+
+  <section class="mt-8 overflow-x-auto rounded-2xl border border-line dark:border-line-dark">
+    {
+      products.length === 0 ? (
+        <p class="p-8 text-center text-sm text-ink/50 dark:text-paper/50">
+          No hay productos todavía. Crea el primero.
+        </p>
+      ) : (
+        <table class="w-full min-w-[820px] text-left text-sm">
+          <thead class="border-b border-line bg-paper-2/70 text-xs uppercase tracking-wider text-ink/60 dark:border-line-dark dark:bg-ink-2 dark:text-paper/60">
+            <tr>
+              <th class="px-4 py-3">Producto</th>
+              <th class="px-4 py-3">Categoría</th>
+              <th class="px-4 py-3 text-right">Precio</th>
+              <th class="px-4 py-3 text-right">Stock</th>
+              <th class="px-4 py-3 text-center">Destacado</th>
+              <th class="px-4 py-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              products.map((product) => (
+                <tr class={`border-b border-line last:border-0 dark:border-line-dark ${!product.active ? 'bg-ink/5 dark:bg-paper/5' : ''}`}>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-3">
+                      <img src={product.images[0]} alt="" class="h-12 w-12 shrink-0 rounded-lg border border-line object-cover dark:border-line-dark" />
+                      <div class="min-w-0">
+                        <p class={`truncate font-semibold ${!product.active ? 'text-ink/50 dark:text-paper/50' : ''}`}>
+                          {product.name}
+                        </p>
+                        <p class="text-xs uppercase tracking-wider text-ink/50 dark:text-paper/50">
+                          {product.brand} {!product.active && '· oculto'}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-ink/70 dark:text-paper/70">
+                    {product.category?.name ?? '—'}
+                  </td>
+                  <td class="px-4 py-3 text-right font-semibold">
+                    {formatCents(product.price_cents)}
+                    {
+                      product.original_price_cents && (
+                        <span class="ml-1 text-xs text-ink/40 line-through dark:text-paper/40">
+                          {formatCents(product.original_price_cents)}
+                        </span>
+                      )
+                    }
+                  </td>
+                  <td class={`px-4 py-3 text-right font-bold ${product.stock <= 5 ? 'text-ember' : ''}`}>
+                    {product.stock}
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    {product.is_featured ? <span class="text-ember">★</span> : <span class="text-ink/25 dark:text-paper/25">☆</span>}
+                  </td>
+                  <td class="px-4 py-3">
+                    <AdminRowActions client:load productId={product.id} active={product.active} />
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      )
+    }
+  </section>
+</AdminLayout>

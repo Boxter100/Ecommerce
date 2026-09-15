@@ -1,0 +1,23 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import ProductForm from '../../../components/react/ProductForm';
+import { isAdminUser } from '../../../lib/supabase/is-admin';
+import { getCategories } from '../../../lib/products';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+
+if (!supabase || !user || !(await isAdminUser(supabase, user))) {
+  return Astro.redirect('/admin/login?error=unauthorized');
+}
+
+const categories = await getCategories(supabase);
+---
+
+<AdminLayout title="Nuevo producto" user={user}>
+  <header>
+    <p class="text-xs font-bold uppercase tracking-[0.2em] text-ember">Catálogo</p>
+    <h1 class="font-display mt-1 text-3xl uppercase sm:text-4xl">Nuevo producto</h1>
+  </header>
+  <ProductForm client:load categories={categories} />
+</AdminLayout>

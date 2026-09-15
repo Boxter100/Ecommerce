@@ -1,0 +1,76 @@
+// Genera los pósteres SVG de los productos en /public/images/products
+// Uso: node scripts/gen-product-images.mjs
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+const products = [
+  { slug: 'runner-pro-1', bg: '#171310', body: '#ff4d00', accent: '#f2eee4', sock: '#3a332c' },
+  { slug: 'urban-canvas-01', bg: '#f2eee4', body: '#e6ddc9', accent: '#c2410c', sock: '#171310' },
+  { slug: 'court-legend-low', bg: '#171310', body: '#2563eb', accent: '#f2eee4', sock: '#3a332c' },
+  { slug: 'trail-surge-gtx', bg: '#f2eee4', body: '#14532d', accent: '#ff4d00', sock: '#171310' },
+  { slug: 'retro-court-84', bg: '#171310', body: '#92400e', accent: '#fcd34d', sock: '#3a332c' },
+  { slug: 'street-knit-mono', bg: '#f2eee4', body: '#171310', accent: '#ff4d00', sock: '#6b6560' },
+  { slug: 'aero-bounce-5', bg: '#171310', body: '#f2eee4', accent: '#16a34a', sock: '#3a332c' },
+  { slug: 'mudline-low', bg: '#f2eee4', body: '#3f6212', accent: '#f2eee4', sock: '#171310' },
+];
+
+function sneaker({ body, accent, sock, bg }) {
+  const mid = (a, b) => (a + b) / 2;
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Zapatilla">
+  <rect width="800" height="600" fill="${bg}"/>
+  <g opacity="0.08" fill="${accent}">
+    <path d="M0 0h120l240 600H120L0 0z" transform="translate(40 0)"/>
+    <path d="M220 0h120l240 600H460L220 0z" transform="translate(160 0)"/>
+  </g>
+  <ellipse cx="400" cy="498" rx="300" ry="18" fill="#000" opacity="0.18"/>
+  <!-- check V monogram -->
+  <g transform="translate(560 90) rotate(12)">
+    <path d="M0 0h56l104 170-22 0L32 26 8 110 0 110 0 0z" fill="${accent}" opacity="0.9"/>
+  </g>
+  <!-- sole -->
+  <path d="M150 442 L652 442 Q678 442 678 462 Q678 482 652 482 L156 482 Q130 482 130 462 Q130 442 150 442 Z" fill="${sock}"/>
+  <g stroke="${accent}" stroke-width="8" stroke-linecap="round" opacity="0.85">
+    <line x1="176" y1="462" x2="196" y2="462"/>
+    <line x1="240" y1="462" x2="260" y2="462"/>
+    <line x1="304" y1="462" x2="324" y2="462"/>
+    <line x1="368" y1="462" x2="388" y2="462"/>
+    <line x1="432" y1="462" x2="452" y2="462"/>
+    <line x1="496" y1="462" x2="516" y2="462"/>
+    <line x1="560" y1="462" x2="580" y2="462"/>
+    <line x1="624" y1="462" x2="642" y2="462"/>
+  </g>
+  <!-- upper -->
+  <path d="M168 442 L150 356 Q146 322 184 314 Q208 309 214 292 Q236 262 292 250 L430 238 Q500 232 548 268 Q602 308 626 350 Q642 378 642 400 L642 442 Z"
+    fill="${body}" stroke="${sock}" stroke-width="3" stroke-linejoin="round"/>
+  <!-- ankle opening -->
+  <path d="M246 296 Q262 272 296 258 L352 250 Q322 284 292 306 Z" fill="${sock}" opacity="0.9"/>
+  <!-- stitching -->
+  <g stroke="${sock}" stroke-width="3" fill="none" opacity="0.5">
+    <path d="M232 334 Q300 300 392 286"/>
+    <path d="M250 356 Q320 322 412 308"/>
+    <path d="M600 330 Q630 360 636 392"/>
+  </g>
+  <!-- speed swoosh -->
+  <path d="M196 408 Q300 336 452 352 Q518 360 566 394 Q516 372 452 370 Q330 360 252 420 Z" fill="${accent}"/>
+  <!-- heel tab -->
+  <rect x="150" y="318" width="44" height="44" rx="14" fill="${accent}" opacity="0.9"/>
+  <!-- eyelets -->
+  <g fill="${sock}">
+    <circle cx="330" cy="268" r="5"/><circle cx="372" cy="260" r="5"/>
+    <circle cx="414" cy="258" r="5"/><circle cx="456" cy="262" r="5"/>
+  </g>
+</svg>`;
+}
+
+const outDir = join(root, 'public', 'images', 'products');
+mkdirSync(outDir, { recursive: true });
+
+for (const p of products) {
+  const file = join(outDir, `${p.slug}.svg`);
+  writeFileSync(file, sneaker(p).trim() + '\n');
+  console.log('ok', file);
+}

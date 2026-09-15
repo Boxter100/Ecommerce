@@ -1,0 +1,112 @@
+---
+import LoginForm from '../../components/react/LoginForm';
+import { createSupabaseClient } from '../../lib/supabase/server';
+import { isAdminUser } from '../../lib/supabase/is-admin';
+import { isSupabaseConfigured } from '../../lib/env';
+import '../../styles/global.css';
+
+const supabase = isSupabaseConfigured()
+  ? createSupabaseClient({ request: Astro.request, cookies: Astro.cookies })
+  : null;
+let user = null;
+if (supabase) {
+  const {
+    data: { user: u },
+  } = await supabase.auth.getUser();
+  user = u;
+}
+
+if (supabase && user && (await isAdminUser(supabase, user))) {
+  return Astro.redirect('/admin');
+}
+
+const next = Astro.url.searchParams.get('next') ?? '/admin';
+const error = Astro.url.searchParams.get('error');
+const message: Record<string, string> = {
+  unauthorized: 'Tu cuenta no tiene permisos de administración.',
+  auth_callback_error: 'La sesión no se pudo confirmar. Inténtalo de nuevo.',
+};
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Acceso · VUELTA Admin</title>
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <script is:inline>
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem('vuelta.theme');
+        } catch (e) {}
+        var dark = stored
+          ? stored === 'dark'
+          : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', dark);
+      })();
+    </script>
+  </head>
+  <body class="bg-grid min-h-screen bg-paper text-ink dark:bg-ink dark:text-paper">
+    <main class="flex min-h-screen items-center justify-center px-4 py-10">
+      <div class="animate-rise w-full max-w-sm">
+        <a href="/" class="block text-center font-display text-4xl tracking-wide">
+          VUELTA<span class="text-ember">.</span>
+        </a>
+        <p class="mt-2 text-center text-sm text-ink/60 dark:text-paper/60">
+          Panel de administración
+        </p>
+
+        <div class="mt-8 rounded-2xl border border-line bg-paper p-6 shadow-hard dark:border-line-dark dark:bg-ink">
+          {
+            error && message[error] && (
+              <p role="alert" class="mb-4 rounded-lg border border-ember/40 bg-ember/10 px-3 py-2 text-sm font-semibold text-ember">
+                {message[error]}
+              </p>
+            )
+          }
+          {
+            isSupabaseConfigured() ? (
+              <LoginForm client:load next={next} />
+            ) : (
+              <div class="flex flex-col gap-4">
+                <div class="grid h-14 w-14 place-items-center rounded-full bg-ember/15 text-ember">
+                  <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 class="font-display text-2xl uppercase">Conecta Supabase</h1>
+                  <p class="mt-2 text-sm leading-relaxed text-ink/70 dark:text-paper/70">
+                    El panel de administración todavía no tiene credenciales. Para activarlo:
+                  </p>
+                </div>
+                <ol class="list-decimal space-y-2 pl-5 text-sm leading-relaxed">
+                  <li>Escribe <code class="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-xs dark:bg-ink-2">cp .env.example .env</code></li>
+                  <li>Rellena <code class="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-xs dark:bg-ink-2">PUBLIC_SUPABASE_URL</code> y <code class="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-xs dark:bg-ink-2">PUBLIC_SUPABASE_ANON_KEY</code> desde Supabase → Project Settings → API.</li>
+                  <li>Ejecuta <code class="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-xs dark:bg-ink-2">supabase/schema.sql</code> y <code class="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-xs dark:bg-ink-2">supabase/seed.sql</code> en el SQL Editor.</li>
+                  <li>Promueve tu usuario a admin y añade <code class="rounded bg-paper-2 px-1.5 py-0.5 font-mono text-xs dark:bg-ink-2">SUPABASE_SERVICE_ROLE_KEY</code>.</li>
+                </ol>
+                <p class="rounded-lg border border-ink/15 bg-paper-2/70 p-3 text-xs text-ink/60 dark:border-paper/15 dark:bg-ink-2 dark:text-paper/60">
+                  Mientras tanto, la tienda funciona en <strong>modo demo</strong> con el catálogo de ejemplo.
+                </p>
+              </div>
+            )
+          }
+        </div>
+
+        <p class="mt-6 text-center text-xs leading-relaxed text-ink/50 dark:text-paper/50">
+          Zona restringida. Solo acceden los administradores de la tienda.
+        </p>
+      </div>
+    </main>
+  </body>
+</html>

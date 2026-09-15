@@ -1,0 +1,160 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { isAdminUser } from '../../lib/supabase/is-admin';
+import { formatCents, formatDate } from '../../lib/format';
+import type { DashboardStats, Order } from '../../lib/types';
+
+const supabase = Astro.locals.supabase;
+const user = Astro.locals.user;
+
+if (!supabase || !user || !(await isAdminUser(supabase, user))) {
+  return Astro.redirect('/admin/login?error=unauthorized');
+}
+
+const [activeRes, inactiveRes, lowStockRes, ordersRes] = await Promise.all([
+  supabase.from('products').select('id', { count: 'exact', head: true }).eq('active', true),
+  supabase.from('products').select('id', { count: 'exact', head: true }).eq('active', false),
+  supabase.from('products').select('id', { count: 'exact', head: true }).lte('stock', 5),
+  supabase.from('orders').select('id', { count: 'exact', head: true }),
+]);
+
+const { data: revenueData } = await supabase
+  .from('orders')
+  .select('amount_total_cents')
+  .eq('status', 'paid');
+
+const revenueCents = (revenueData ?? []).reduce(
+  (sum: number, o) => sum + (Number(o.amount_total_cents) || 0),
+  0,
+);
+
+const { data: recentRows } = await supabase
+  .from('orders')
+  .select('id, stripe_session_id, customer_name, customer_email, amount_total_cents, currency, status, created_at')
+  .order('created_at', { ascending: false })
+  .limit(6);
+
+const stats: DashboardStats = {
+  products: activeRes.count ?? 0,
+  lowStock: lowStockRes.count ?? 0,
+  orders: ordersRes.count ?? 0,
+  revenueCents,
+  recentOrders: (recentRows ?? []) as Order[],
+};
+
+const inactiveCount = inactiveRes.count ?? 0;
+
+const tiles = [
+  { label: 'Productos activos', value: String(stats.products), accent: false },
+  { label: 'Ocultos', value: String(inactiveCount), accent: false },
+  { label: 'Stock bajo (≤5)', value: String(stats.lowStock), accent: stats.lowStock > 0 },
+  { label: 'Pedidos', value: String(stats.orders), accent: false },
+  { label: 'Ingresos', value: formatCents(stats.revenueCents), accent: true },
+];
+---
+
+<AdminLayout title="Panel de administración" user={user}>
+  <header class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-[0.2em] text-ember">Dashboard</p>
+      <h1 class="font-display mt-1 text-3xl uppercase sm:text-4xl">Panel de control</h1>
+    </div>
+    <a
+      href="/admin/producto/nuevo"
+      class="bg-ember px-4 py-3 text-sm font-bold uppercase tracking-widest text-white shadow-hard-sm transition-all hover:-translate-y-0.5"
+    >
+      + Nuevo producto
+    </a>
+  </header>
+
+  <section class="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+    {
+      tiles.map((tile) => (
+        <div
+          class={`rounded-2xl border p-4 transition-colors dark:border-line-dark ${
+            tile.accent
+              ? 'border-ember bg-ember/10 dark:bg-ember/15'
+              : 'border-line bg-paper dark:bg-ink'
+          }`}
+        >
+          <p class="text-[11px] font-bold uppercase tracking-wider text-ink/50 dark:text-paper/50">
+            {tile.label}
+          </p>
+          <p class="mt-2 truncate font-display text-2xl">{tile.value}</p>
+        </div>
+      ))
+    }
+  </section>
+
+  <section class="mt-10">
+    <div class="flex items-end justify-between gap-4">
+      <h2 class="font-display text-2xl uppercase">Últimos pedidos</h2>
+      <span class="text-xs text-ink/50 dark:text-paper/50">Arrive via webhook de Stripe</span>
+    </div>
+    <div class="mt-4 overflow-x-auto rounded-2xl border border-line dark:border-line-dark">
+      {
+        stats.recentOrders.length === 0 ? (
+          <p class="p-6 text-sm text-ink/50 dark:text-paper/50">
+            Todavía no hay pedidos. Cuando un cliente pague con Stripe aparecerá aquí.
+          </p>
+        ) : (
+          <table class="w-full min-w-[560px] text-left text-sm">
+            <thead class="border-b border-line bg-paper-2/70 text-xs uppercase tracking-wider text-ink/60 dark:border-line-dark dark:bg-ink-2 dark:text-paper/60">
+              <tr>
+                <th class="px-4 py-3">Cliente</th>
+                <th class="px-4 py-3">Email</th>
+                <th class="px-4 py-3">Estado</th>
+                <th class="px-4 py-3 text-right">Total</th>
+                <th class="px-4 py-3 text-right">Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                stats.recentOrders.map((order) => (
+                  <tr class="border-b border-line last:border-0 dark:border-line-dark">
+                    <td class="px-4 py-3 font-semibold">{order.customer_name ?? '—'}</td>
+                    <td class="px-4 py-3 text-ink/70 dark:text-paper/70">{order.customer_email ?? '—'}</td>
+                    <td class="px-4 py-3">
+                      <span class="rounded-full bg-emerald-600/15 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                        {order.status}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-right font-semibold">
+                      {formatCents(order.amount_total_cents)}
+                    </td>
+                    <td class="px-4 py-3 text-right text-ink/60 dark:text-paper/60">
+                      {formatDate(order.created_at)}
+                    </td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        )
+      }
+    </div>
+  </section>
+
+  <section class="mt-10 grid gap-4 sm:grid-cols-2">
+    <a
+      href="/admin/productos"
+      class="card-hover flex items-center justify-between rounded-2xl border border-line bg-paper p-6 dark:border-line-dark dark:bg-ink"
+    >
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-ember">Catálogo</p>
+        <h3 class="font-display mt-1 text-xl uppercase">Gestionar productos</h3>
+      </div>
+      <span class="font-display text-2xl">→</span>
+    </a>
+    <a
+      href="/"
+      class="card-hover flex items-center justify-between rounded-2xl border border-line bg-paper p-6 dark:border-line-dark dark:bg-ink"
+    >
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-ember">Tienda</p>
+        <h3 class="font-display mt-1 text-xl uppercase">Ver la tienda pública</h3>
+      </div>
+      <span class="font-display text-2xl">→</span>
+    </a>
+  </section>
+</AdminLayout>

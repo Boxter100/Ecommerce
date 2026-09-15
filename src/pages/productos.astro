@@ -1,0 +1,76 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ProductCard from '../components/ProductCard.astro';
+import SearchBox from '../components/react/SearchBox';
+import { createSupabaseClient } from '../lib/supabase/server';
+import { isSupabaseConfigured } from '../lib/env';
+import { getCategories, getProducts } from '../lib/products';
+
+const supabase = isSupabaseConfigured()
+  ? createSupabaseClient({ request: Astro.request, cookies: Astro.cookies })
+  : null;
+
+const category = Astro.url.searchParams.get('categoria');
+const q = Astro.url.searchParams.get('q') ?? '';
+
+const [products, categories] = await Promise.all([
+  getProducts(supabase, { category: category ?? undefined, q: q || undefined }),
+  getCategories(supabase),
+]);
+
+const activeCategory = categories.find((c) => c.slug === category);
+const title = activeCategory
+  ? `${activeCategory.name} · VUELTA`
+  : q
+    ? `Búsqueda: ${q} · VUELTA`
+    : 'Todos los productos · VUELTA';
+---
+
+<Layout title={title} description="Catálogo completo de zapatillas Vuelta: running, lifestyle, baloncesto y trail.">
+  <section class="bg-grid border-b border-line dark:border-line-dark">
+    <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <p class="text-xs font-bold uppercase tracking-[0.2em] text-ember">Catálogo</p>
+      <h1 class="font-display mt-2 text-4xl uppercase sm:text-5xl">
+        {activeCategory?.name ?? (q ? `«${q}»` : 'Todos los productos')}
+      </h1>
+      <div class="mt-6 max-w-lg">
+        <SearchBox client:load initial={q} />
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <div class="scrollbar-thin flex gap-2 overflow-x-auto pb-2">
+      <a
+        href="/productos"
+        class={`whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${
+          !category ? 'border-ember bg-ember text-white' : 'border-line hover:border-ember dark:border-line-dark'
+        }`}
+      >
+        Todo
+      </a>
+      {categories.map((cat) => (
+        <a
+          href={`/productos?categoria=${cat.slug}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
+          class={`whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${
+            category === cat.slug ? 'border-ember bg-ember text-white' : 'border-line hover:border-ember dark:border-line-dark'
+          }`}
+        >
+          {cat.name}
+        </a>
+      ))}
+    </div>
+
+    {products.length === 0 ? (
+      <div class="flex flex-col items-center gap-3 py-24 text-center">
+        <p class="font-display text-3xl uppercase">Sin resultados</p>
+        <p class="text-sm text-ink/60 dark:text-paper/60">Prueba con otra búsqueda o explora la colección completa.</p>
+        <a href="/productos" class="mt-2 bg-ember px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white">Ver todo</a>
+      </div>
+    ) : (
+      <div class="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {products.map((product, i) => <ProductCard product={product} index={i} />)}
+      </div>
+    )}
+  </section>
+</Layout>

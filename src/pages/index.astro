@@ -1,0 +1,129 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { createSupabaseClient } from '../lib/supabase/server';
+import { isSupabaseConfigured } from '../lib/env';
+import { getCategories, getProducts } from '../lib/products';
+
+const supabase = isSupabaseConfigured()
+  ? createSupabaseClient({ request: Astro.request, cookies: Astro.cookies })
+  : null;
+const [featured, allProducts, categories] = await Promise.all([
+  getProducts(supabase, { featured: true, limit: 4 }),
+  getProducts(supabase, { limit: 8 }),
+  getCategories(supabase),
+]);
+
+const ticker = ['Running', 'Estilo de vida', 'Baloncesto', 'Trail', 'Envío 24/48h', 'Pago seguro con Stripe', 'Devolución 30 días'];
+const recent = allProducts.filter((p) => !featured.some((f) => f.id === p.id));
+---
+
+<Layout title="VUELTA · Tienda de calzado" description="Calzado con carácter: running, lifestyle, baloncesto y trail. Envío rápido y pago seguro.">
+  <!-- Hero -->
+  <section class="bg-grid relative overflow-hidden">
+    <div class="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:pt-20">
+      <div>
+        <p class="animate-rise inline-flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] dark:border-line-dark">
+          <span class="h-2 w-2 animate-wiggle rounded-full bg-ember"></span>
+          Colección 2026
+        </p>
+        <h1 class="animate-rise font-display mt-5 text-5xl uppercase leading-[0.92] sm:text-6xl lg:text-7xl" style="animation-delay:80ms">
+          Calzado con<br />
+          <span class="text-ember">carácter</span>,
+          <span class="text-outline">sin premio.</span>
+        </h1>
+        <p class="animate-rise mt-5 max-w-md text-balance text-sm leading-relaxed text-ink/60 dark:text-paper/60 sm:text-base" style="animation-delay:160ms">
+          Running, lifestyle, baloncesto y trail. Compra en un par de clics y paga con Stripe de forma
+          segura.</p>
+        <div class="animate-rise mt-8 flex flex-wrap gap-3" style="animation-delay:240ms">
+          <a href="/productos" class="bg-ember px-6 py-3.5 font-bold uppercase tracking-widest text-white shadow-hard transition-all hover:-translate-y-0.5 hover:shadow-lg">
+            Comprar ahora
+          </a>
+          <a href="/productos?categoria=running" class="border-2 border-ink px-6 py-3.5 font-bold uppercase tracking-widest transition-all hover:-translate-y-0.5 hover:bg-ink hover:text-paper dark:border-paper dark:hover:bg-paper dark:hover:text-ink">
+            Running
+          </a>
+        </div>
+      </div>
+
+      <div class="animate-rise relative" style="animation-delay:200ms">
+        <div class="relative overflow-hidden rounded-3xl border border-line dark:border-line-dark">
+          {
+            featured[0] ? (
+              <a href={`/producto/${featured[0].slug}`} class="group block">
+                <img src={featured[0].images[0]} alt={featured[0].name} class="aspect-[5/4] w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <div class="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 bg-gradient-to-t from-ink/85 to-transparent p-5 text-paper">
+                  <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.18em] text-ember-soft">{featured[0].brand}</p>
+                    <h2 class="font-display mt-1 text-2xl uppercase leading-none">{featured[0].name}</h2>
+                  </div>
+                  <span class="shrink-0 rounded-full bg-ember px-4 py-2 font-bold text-white">Ver →</span>
+                </div>
+              </a>
+            ) : null
+          }
+        </div>
+        <div class="absolute -right-3 -top-3 -z-10 h-full w-full rounded-3xl bg-ember" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <!-- Ticker -->
+    <div class="border-y-2 border-ink bg-ember py-3 text-ink dark:border-paper" aria-hidden="true">
+      <div class="flex w-max animate-ticker gap-8 whitespace-nowrap">
+        {[...ticker, ...ticker].map((t, i) => (
+          <span class="font-display text-xl uppercase tracking-wide">
+            {t} <span class="mx-4">✦</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured -->
+  <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+    <div class="flex items-end justify-between gap-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-[0.2em] text-ember">Destacados</p>
+        <h2 class="font-display mt-2 text-3xl uppercase sm:text-4xl">Los favoritos</h2>
+      </div>
+      <a href="/productos" class="shrink-0 text-sm font-bold uppercase tracking-wider underline underline-offset-4 hover:text-ember">Ver todo →</a>
+    </div>
+    <div class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {featured.map((product, i) => <ProductCard product={product} index={i} />)}
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section class="border-y border-line bg-paper-2/60 dark:border-line-dark dark:bg-ink-2/60">
+    <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <h2 class="font-display text-center text-3xl uppercase">Explora por <span class="text-ember">categoría</span></h2>
+      <div class="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+        {categories.map((cat, i) => (
+          <a
+            href={`/productos?categoria=${cat.slug}`}
+            class="group card-hover rounded-2xl border border-line bg-paper px-5 py-8 text-center dark:border-line-dark dark:bg-ink"
+            style={`animation-delay:${i * 70}ms`}
+          >
+            <span class="font-display block text-xl uppercase transition-colors group-hover:text-ember">{cat.name}</span>
+            <span class="mt-2 inline-block text-xs font-bold uppercase tracking-wider text-ink/40 dark:text-paper/40 group-hover:text-ember">
+              Ver modelos →
+            </span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- New arrivals -->
+  <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+    <div class="flex items-end justify-between gap-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-[0.2em] text-ember">Novedades</p>
+        <h2 class="font-display mt-2 text-3xl uppercase sm:text-4xl">Recién llegados</h2>
+      </div>
+      <a href="/productos" class="shrink-0 text-sm font-bold uppercase tracking-wider underline underline-offset-4 hover:text-ember">Colección completa →</a>
+    </div>
+    <div class="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {recent.slice(0, 6).map((product, i) => <ProductCard product={product} index={i} />)}
+    </div>
+  </section>
+</Layout>

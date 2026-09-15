@@ -1,0 +1,27 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Pago cancelado · VUELTA" description="Tu pedido no se ha completado.">
+  <section class="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+    <div class="animate-rise mx-auto max-w-xl text-center">
+      <div class="mx-auto grid h-20 w-20 place-items-center rounded-full border-2 border-ink text-ink dark:border-paper dark:text-paper">
+        <svg class="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </div>
+      <h1 class="font-display mt-8 text-4xl uppercase">Pago cancelado</h1>
+      <p class="mt-4 text-balance text-ink/70 dark:text-paper/70">
+        No se ha cobrado nada. Tu carrito sigue esperándote cuando quieras terminar la compra.
+      </p>
+      <div class="mt-8 flex flex-wrap justify-center gap-3">
+        <a href="/productos" class="bg-ember px-5 py-3 font-bold uppercase tracking-widest text-white shadow-hard-sm transition-all hover:-translate-y-0.5">
+          Seguir comprando
+        </a>
+        <a href="/" class="border-2 border-ink px-5 py-3 font-bold uppercase tracking-widest transition-all hover:bg-ink hover:text-paper dark:border-paper dark:hover:bg-paper dark:hover:text-ink">
+          Volver al inicio
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

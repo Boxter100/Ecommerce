@@ -1,0 +1,71 @@
+---
+import type { User } from '@supabase/supabase-js';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  user: User;
+}
+
+const { title = 'Panel de administración', user } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} · VUELTA Admin</title>
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <script is:inline>
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem('vuelta.theme');
+        } catch (e) {
+          /* noop */
+        }
+        var dark = stored
+          ? stored === 'dark'
+          : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', dark);
+      })();
+    </script>
+  </head>
+  <body class="bg-paper-2/60 text-ink dark:bg-ink dark:text-paper">
+    <header class="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur dark:border-line-dark dark:bg-ink/90">
+      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        <div class="flex items-center gap-3">
+          <a href="/admin" class="font-display text-2xl tracking-wide">
+            VUELTA<span class="text-ember">.</span><span class="text-ember">/admin</span>
+          </a>
+        </div>
+        <nav class="flex items-center gap-4 text-xs font-bold uppercase tracking-wider">
+          <a href="/admin" class="transition-colors hover:text-ember">Panel</a>
+          <a href="/admin/productos" class="transition-colors hover:text-ember">Productos</a>
+          <a href="/" class="transition-colors hover:text-ember">Ver tienda</a>
+          <span class="mx-1 hidden text-ink/30 dark:text-paper/30 sm:inline">
+            {user.email}
+          </span>
+          <a
+            href="/api/auth/logout"
+            class="rounded-full border border-line px-3 py-1.5 transition-colors hover:bg-ember hover:text-white hover:border-ember dark:border-line-dark"
+          >
+            Salir
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <slot />
+    </main>
+  </body>
+</html>
