@@ -2,7 +2,12 @@ import type { APIRoute } from 'astro';
 import type Stripe from 'stripe';
 import { getAdminClient } from '../../../lib/supabase/admin';
 import { getStripe } from '../../../lib/stripe';
-import { envStripeWebhookSecret, isStripeConfigured } from '../../../lib/env';
+import {
+  envStripeWebhookSecret,
+  isStripeConfigured,
+  isServiceRoleConfigured,
+  isWebhookConfigured,
+} from '../../../lib/env';
 import { parseSizeLabel } from '../../../lib/sizes';
 
 export const prerender = false;
@@ -109,8 +114,18 @@ async function handleCompleted(session: Stripe.Checkout.Session) {
 export const POST: APIRoute = async ({ request }) => {
   if (!isStripeConfigured()) {
     return new Response(
-      JSON.stringify({ received: false, error: 'Stripe webhook no configurado' }),
-      { status: 200 },
+      JSON.stringify({ received: false, error: 'Stripe no configurado' }),
+      { status: 503 },
+    );
+  }
+  if (!isWebhookConfigured()) {
+    return new Response(
+      JSON.stringify({
+        received: false,
+        error:
+          'STRIPE_WEBHOOK_SECRET vacío. Crea el endpoint de webhook (evento checkout.session.completed) o ejecuta "stripe listen --forward-to localhost:4321/api/webhook/stripe".',
+      }),
+      { status: 503 },
     );
   }
 
@@ -121,17 +136,30 @@ export const POST: APIRoute = async ({ request }) => {
   const stripe = getStripe();
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(payload, signature ?? '', secret);
+    if (!signature) throw new Error('Cabecera stripe-signature ausente');
+    event = stripe.webhooks.constructEvent(payload, signature, secret);
   } catch (err) {
-    console.error('webhook-signature-error', err);
-    return new Response('Firma de webhook no válida', { status: 400 });
+    console.error('webhook-signature-error', { error: (err as Error).message });
+    return new Response(
+      new TextEncoder().encode(
+        'Firma de webhook no válida: ' + (err as Error).message,
+      ),
+      { status: 400, headers: { 'Content-Type': 'text/plain' } },
+    );
   }
 
   if (event.type === 'checkout.session.completed') {
-    // Procesamos después de la respuesta para no bloquear el retorno a Stripe.
-    handleCompleted(event.data.object as Stripe.Checkout.Session).catch((e) =>
-      console.error('webhook-handler-error', e),
-    );
+    if (isServiceRoleConfigured()) {
+      // Procesamos después de la respuesta para no bloquear el retorno a Stripe.
+      handleCompleted(event.data.object as Stripe.Checkout.Session).catch((e) =>
+        console.error('webhook-handler-error', e),
+      );
+    } else {
+      console.error(
+        'webhook-handler-skip',
+        'SUPABASE_SERVICE_ROLE_KEY vacía: no se registró el pedido',
+      );
+    }
   }
 
   return new Response(JSON.stringify({ received: true }), { status: 200 });

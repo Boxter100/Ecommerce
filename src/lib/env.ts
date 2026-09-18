@@ -49,3 +49,18 @@ export function isStripeConfigured(): boolean {
   const key = import.meta.env.STRIPE_SECRET_KEY ?? '';
   return key.startsWith('sk_') && key.length > 20 && !key.includes('...');
 }
+
+export function isWebhookConfigured(): boolean {
+  const secret = import.meta.env.STRIPE_WEBHOOK_SECRET ?? '';
+  return secret.startsWith('whsec_') && secret.length > 20;
+}
+
+export function isServiceRoleConfigured(): boolean {
+  const key = import.meta.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+  return (
+    key.length > 20 &&
+    !key.includes('...') &&
+    !key.includes('xxxx') &&
+    !key.startsWith('sb_secret_placeholder')
+  );
+}
